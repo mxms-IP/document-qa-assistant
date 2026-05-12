@@ -1,0 +1,15 @@
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-huggingface==0.0.3
+faiss-cpu==1.8.0
+sentence-transformers==3.0.1
+transformers==4.44.2
+accelerate==0.33.0
+bitsandbytes==0.43.3
+fastapi==0.112.0
+uvicorn[standard]==0.30.6
+pydantic-settings==2.4.0
+python-dotenv==1.0.1
+pypdf==4.3.1
+torch
+pytest==8.3.2
