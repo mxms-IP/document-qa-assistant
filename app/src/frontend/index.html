@@ -46,6 +46,16 @@
 </head>
 <body>
 
+
+    <!-- UPLOAD SECTION -->
+    <div id="upload-section">
+        <h2>Step 1: Upload a PDF</h2>
+        <input type="file" id="file-input" accept=".pdf" />
+        <button onclick="uploadFile()">Upload & Index</button>
+        <p id="upload-status">No document loaded. Using default.</p>
+    </div>
+
+
     <h1>Document Q&A</h1>
     <p>Ask a question about the loaded document.</p>
 
@@ -57,6 +67,8 @@
 
     <!-- 3. The answer will appear here -->
     <div id="answer-box">Answer will appear here...</div>
+
+
 
     <script>
         async function askQuestion() {
@@ -95,6 +107,45 @@
                 btn.disabled = false;
             }
         }
+
+        async function uploadFile() {
+    const fileInput = document.getElementById("file-input");
+    const status = document.getElementById("upload-status");
+
+    // 1. Check a file was actually selected
+    if (!fileInput.files[0]) {
+        status.textContent = "Please select a PDF first.";
+        return;
+    }
+
+    // 2. FormData is how browsers send files — different from JSON
+    //    Think of it as putting the file in an envelope
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    status.textContent = "Uploading and indexing... this may take a moment.";
+
+    try {
+        // 3. Notice: no Content-Type header here
+        //    When sending FormData, the browser sets it automatically
+        //    If you set it manually you'll break it
+        const response = await fetch("http://localhost:8000/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            status.textContent = `Ready: "${data.filename}" indexed with ${data.chunks} chunks.`;
+        } else {
+            status.textContent = `Error: ${data.detail}`;
+        }
+
+    } catch (error) {
+        status.textContent = "Error: could not reach the API.";
+    }
+}
     </script>
 
 </body>
