@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Q&A</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 60px auto;
+            padding: 0 20px;
+            background: #f9f9f9;
+        }
+        h1 { color: #333; }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 24px;
+            font-size: 1rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:disabled { background: #93c5fd; }
+        #answer-box {
+            margin-top: 24px;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            min-height: 60px;
+            color: #111;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Document Q&A</h1>
+    <p>Ask a question about the loaded document.</p>
+
+    <!-- 1. The user types their question here -->
+    <textarea id="question-input" rows="3" placeholder="e.g. What makes kangaroos special?"></textarea>
+
+    <!-- 2. Clicking this triggers the askQuestion function -->
+    <button id="submit-btn" onclick="askQuestion()">Ask</button>
+
+    <!-- 3. The answer will appear here -->
+    <div id="answer-box">Answer will appear here...</div>
+
+    <script>
+        async function askQuestion() {
+            // 4. Grab what the user typed
+            const question = document.getElementById("question-input").value;
+
+            // 5. Don't send an empty request
+            if (!question.trim()) return;
+
+            // 6. Show loading state so user knows something is happening
+            const btn = document.getElementById("submit-btn");
+            const answerBox = document.getElementById("answer-box");
+            btn.disabled = true;
+            answerBox.textContent = "Thinking...";
+
+            // 7. fetch() sends the POST request — same contract as your curl command
+            //    async/await means: wait for the response before continuing
+            try {
+                const response = await fetch("http://localhost:8000/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: question })
+                });
+
+                // 8. Parse the JSON response — same as response.json() in Python requests
+                const data = await response.json();
+
+                // 9. Put the answer into the div
+                answerBox.textContent = data.answer;
+
+            } catch (error) {
+                // 10. If the API is down or CORS blocks it, show a useful message
+                answerBox.textContent = "Error: could not reach the API. Is the server running?";
+            } finally {
+                // 11. Re-enable the button whether it succeeded or failed
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+</html>
