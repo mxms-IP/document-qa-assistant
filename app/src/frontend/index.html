@@ -42,6 +42,8 @@
             color: #111;
             line-height: 1.6;
         }
+
+       
     </style>
 </head>
 <body>
@@ -51,7 +53,7 @@
     <!-- UPLOAD SECTION -->
     <div id="upload-section">
         <h2>Step 1: Upload a PDF</h2>
-        <input type="file" id="file-input" accept=".pdf" />
+        <input type="file" id="file-input" accept=".pdf" multiple/>
         <button onclick="uploadFile()">Upload</button>
         <p id="upload-status">No document loaded.</p>
     </div>
@@ -60,10 +62,10 @@
     <h2>Ask a question.</h2>
 
     <!-- 1. The user types their question here -->
-    <textarea id="question-input" rows="3" placeholder="e.g. What makes kangaroos special?"></textarea>
+    <textarea id="question-input" class="qa-section" rows="3" placeholder="e.g. What makes kangaroos special?" disabled="true"></textarea>
 
     <!-- 2. Clicking this triggers the askQuestion function -->
-    <button id="submit-btn" onclick="askQuestion()">Ask</button>
+    <button id="submit-btn" class="qa-section" onclick="askQuestion()" disabled="true">Ask</button>
 
     <!-- 3. The answer will appear here -->
     <textarea id="answer-box" placeholder="Answer will appear here..." disabled="true"></textarea>
@@ -71,16 +73,18 @@
 
 
     <script>
+        const btn = document.getElementById("submit-btn");
+        const answerBox = document.getElementById("answer-box");
+        const questionBox = document.getElementById("question-input");
+
         async function askQuestion() {
             // 4. Grab what the user typed
-            const question = document.getElementById("question-input").value;
+            const question = questionBox.value;
 
             // 5. Don't send an empty request
             if (!question.trim()) return;
 
             // 6. Show loading state so user knows something is happening
-            const btn = document.getElementById("submit-btn");
-            const answerBox = document.getElementById("answer-box");
             btn.disabled = true;
             answerBox.value = "Thinking...";
 
@@ -96,8 +100,12 @@
                 // 8. Parse the JSON response — same as response.json() in Python requests
                 const data = await response.json();
 
+
                 // 9. Put the answer into the div
-                answerBox.value = data.answer;
+                a// 9. Combine answer and metadata with a visual divider into the textarea
+                answerBox.value = `${data.answer}\n\nSources:\n${data.metadata}`;
+
+                
 
             } catch (error) {
                 // 10. If the API is down or CORS blocks it, show a useful message
@@ -109,43 +117,52 @@
         }
 
         async function uploadFile() {
-    const fileInput = document.getElementById("file-input");
-    const status = document.getElementById("upload-status");
+            const fileInput = document.getElementById("file-input");
+            const status = document.getElementById("upload-status");
 
-    // 1. Check a file was actually selected
-    if (!fileInput.files[0]) {
-        status.textContent = "Please select a PDF first.";
-        return;
-    }
+            // 1. Check a file was actually selected
+            if (fileInput.files.length === 0) {
+                status.textContent = "Please select at least one PDF first.";
+                return;
+            }
 
-    // 2. FormData is how browsers send files — different from JSON
-    //    Think of it as putting the file in an envelope
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
 
-    status.textContent = "Uploading...this may take a moment.";
+            // 2. FormData is how browsers send files — different from JSON
+            //    Think of it as putting the file in an envelope
+            const formData = new FormData();
+           
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append("files", fileInput.files[i]);
+            }
 
-    try {
-        // 3. Notice: no Content-Type header here
-        //    When sending FormData, the browser sets it automatically
-        //    If you set it manually you'll break it
-        const response = await fetch("http://localhost:8000/upload", {
-            method: "POST",
-            body: formData
-        });
+            status.textContent = "Uploading files...this may take a moment.";
 
-        const data = await response.json();
+            try {
+                // 3. Notice: no Content-Type header here
+                //    When sending FormData, the browser sets it automatically
+                //    If you set it manually you'll break it
+                const response = await fetch("http://localhost:8000/upload", {
+                    method: "POST",
+                    body: formData
+                });
 
-        if (response.ok) {
-            status.textContent = `Ready: "${data.filename}" indexed with ${data.chunks} chunks.`;
-        } else {
-            status.textContent = `Error: ${data.detail}`;
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.textContent = `Ready! you can ask questions now...`;
+                    btn.disabled=false;
+                    questionBox.disabled=false;
+
+                } else {
+                   // Handle cases where data.detail might be an array or string
+                    const detailMsg = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
+                    status.textContent = `Error: ${detailMsg || "Upload failed."}`;
+                }
+
+            } catch (error) {
+                status.textContent = "Error: could not reach the API.";
+            }
         }
-
-    } catch (error) {
-        status.textContent = "Error: could not reach the API.";
-    }
-}
     </script>
 
 </body>

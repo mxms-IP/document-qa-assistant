@@ -83,6 +83,7 @@ def retrieve(question, embed_model, index, chunks, k=3):
     for rank, idx in enumerate(indices_found[0]):
         dist = distances[0][rank]
         text = chunks[idx].page_content
+        metadata = chunks[idx].metadata
 
         if dist < 0.8:
             confidence = "HIGH"
@@ -91,7 +92,8 @@ def retrieve(question, embed_model, index, chunks, k=3):
         else:
             confidence = "LOW"
 
-        results.append({"text": text, "distance": dist, "confidence": confidence})
+        results.append({"text": text, "distance": dist, "confidence": confidence, "metadata": metadata})
+      
 
     return results
 
@@ -124,31 +126,3 @@ def ask_llm(prompt, model_name="llama3.2:3b"):
     )
     return response.json()["response"]
 
-
-# ── MAIN: Run the full pipeline ───────────────────────────────────────────────
-
-# This block only runs when you execute: python rag.py
-# It does NOT run when another file does: import rag
-# That distinction matters in Stage 3 when api.py imports from this file.
-
-if __name__ == "__main__":
-    PDF_PATH = "data/sample.pdf"
-    QUESTION = "What makes kangaroos special?"
-
-    pages = load_and_clean(PDF_PATH)
-    chunks = chunk_pages(pages)
-
-    embed_model = load_embed_model()
-    embeddings, texts = build_embeddings_from_model(chunks, embed_model)
-    index = build_index(embeddings)
-
-    retrieved = retrieve(QUESTION, embed_model, index, chunks)
-    
-    print(f"\nQuestion: {QUESTION}\n")
-    for r in retrieved:
-        print(f"[{r['confidence']} | {r['distance']:.3f}] {r['text'][:80]}...")
-    
-    prompt = build_prompt(QUESTION, retrieved)
-    answer = ask_llm(prompt)
-    
-    print(f"\nAnswer: {answer}")
