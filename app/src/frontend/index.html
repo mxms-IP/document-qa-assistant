@@ -45,19 +45,19 @@
     </style>
 </head>
 <body>
-
+    
+    <h1>Document Q&A</h1>
 
     <!-- UPLOAD SECTION -->
     <div id="upload-section">
         <h2>Step 1: Upload a PDF</h2>
         <input type="file" id="file-input" accept=".pdf" />
-        <button onclick="uploadFile()">Upload & Index</button>
-        <p id="upload-status">No document loaded. Using default.</p>
+        <button onclick="uploadFile()">Upload</button>
+        <p id="upload-status">No document loaded.</p>
     </div>
 
-
-    <h1>Document Q&A</h1>
-    <p>Ask a question about the loaded document.</p>
+    
+    <h2>Ask a question.</h2>
 
     <!-- 1. The user types their question here -->
     <textarea id="question-input" rows="3" placeholder="e.g. What makes kangaroos special?"></textarea>
@@ -66,7 +66,7 @@
     <button id="submit-btn" onclick="askQuestion()">Ask</button>
 
     <!-- 3. The answer will appear here -->
-    <div id="answer-box">Answer will appear here...</div>
+    <textarea id="answer-box" placeholder="Answer will appear here..." disabled="true"></textarea>
 
 
 
@@ -82,7 +82,7 @@
             const btn = document.getElementById("submit-btn");
             const answerBox = document.getElementById("answer-box");
             btn.disabled = true;
-            answerBox.textContent = "Thinking...";
+            answerBox.value = "Thinking...";
 
             // 7. fetch() sends the POST request — same contract as your curl command
             //    async/await means: wait for the response before continuing
@@ -97,11 +97,11 @@
                 const data = await response.json();
 
                 // 9. Put the answer into the div
-                answerBox.textContent = data.answer;
+                answerBox.value = data.answer;
 
             } catch (error) {
                 // 10. If the API is down or CORS blocks it, show a useful message
-                answerBox.textContent = "Error: could not reach the API. Is the server running?";
+                answerBox.value = "Error: could not reach the API. Is the server running?";
             } finally {
                 // 11. Re-enable the button whether it succeeded or failed
                 btn.disabled = false;
@@ -123,7 +123,7 @@
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    status.textContent = "Uploading and indexing... this may take a moment.";
+    status.textContent = "Uploading...this may take a moment.";
 
     try {
         // 3. Notice: no Content-Type header here

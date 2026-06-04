@@ -45,16 +45,20 @@ def chunk_pages(pages):
     print(f"[chunk] Created {len(chunks)} chunks")
     return chunks
 
+def load_embed_model():
+    """Load the embedding model. Call this once and reuse."""
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    print("[embed] Model loaded.")
+    return model
 
 # ── STEP 3: Embed ─────────────────────────────────────────────────────────────
 
-def build_embeddings(chunks):
-    """Embed all chunks. Returns the model and the embedding array."""
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+def build_embeddings_from_model(chunks, model):
+    """Embed chunks using a pre-loaded model."""
     texts = [chunk.page_content for chunk in chunks]
     embeddings = model.encode(texts, show_progress_bar=True)
     print(f"[embed] Shape: {embeddings.shape}")
-    return model, embeddings, texts
+    return embeddings
 
 
 # ── STEP 4: Index ─────────────────────────────────────────────────────────────
@@ -133,7 +137,9 @@ if __name__ == "__main__":
 
     pages = load_and_clean(PDF_PATH)
     chunks = chunk_pages(pages)
-    embed_model, embeddings, texts = build_embeddings(chunks)
+
+    embed_model = load_embed_model()
+    embeddings, texts = build_embeddings_from_model(chunks, embed_model)
     index = build_index(embeddings)
 
     retrieved = retrieve(QUESTION, embed_model, index, chunks)
