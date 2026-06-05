@@ -3,165 +3,663 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Q&A</title>
+    <title>SQA Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #0d0f12;
+            --bg-panel:  #13161b;
+            --bg-card:   #1a1e25;
+            --border:    #252930;
+            --border-hi: #353b45;
+            --accent:    #00c896;
+            --accent-dim:#004d3a;
+            --text-1:    #e8eaed;
+            --text-2:    #8b92a0;
+            --text-3:    #4a5060;
+            --danger:    #ff5f5f;
+            --warn:      #f5a623;
+            --mono:      'IBM Plex Mono', monospace;
+            --sans:      'IBM Plex Sans', sans-serif;
+        }
+
         body {
-            font-family: sans-serif;
-            max-width: 700px;
-            margin: 60px auto;
-            padding: 0 20px;
-            background: #f9f9f9;
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text-1);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 56px 1fr;
         }
-        h1 { color: #333; }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
-            border: 1px solid #ccc;
+
+        /* ── Header ── */
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-panel);
+        }
+
+        .logo-mark {
+            width: 28px; height: 28px;
+            border: 1.5px solid var(--accent);
             border-radius: 6px;
-            resize: vertical;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: -0.5px;
         }
-        button {
-            margin-top: 10px;
-            padding: 10px 24px;
-            font-size: 1rem;
-            background: #2563eb;
-            color: white;
+
+        header h1 {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: var(--text-1);
+        }
+
+        .header-tag {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-3);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ── Sidebar ── */
+        aside {
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        /* Upload zone */
+        .drop-zone {
+            border: 1.5px dashed var(--border-hi);
+            border-radius: 8px;
+            padding: 20px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(0, 200, 150, 0.04);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute; inset: 0;
+            opacity: 0; cursor: pointer; width: 100%; height: 100%;
+        }
+
+        .drop-zone svg {
+            display: block; margin: 0 auto 10px;
+            color: var(--text-3);
+        }
+
+        .drop-zone p {
+            font-size: 12px;
+            color: var(--text-2);
+            line-height: 1.5;
+        }
+
+        .drop-zone span {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .upload-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 9px;
+            background: var(--accent);
+            color: #000;
             border: none;
             border-radius: 6px;
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
+            transition: opacity 0.2s;
         }
-        button:disabled { background: #93c5fd; }
-        #answer-box {
-            margin-top: 24px;
-            padding: 16px;
-            background: white;
-            border: 1px solid #e5e7eb;
+
+        .upload-btn:hover { opacity: 0.85; }
+        .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Upload status */
+        #upload-status {
+            font-size: 12px;
+            color: var(--text-2);
+            padding: 8px 10px;
             border-radius: 6px;
-            min-height: 60px;
-            color: #111;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            line-height: 1.5;
+            display: none;
+        }
+
+        #upload-status.visible { display: block; }
+        #upload-status.success { border-color: var(--accent-dim); color: var(--accent); }
+        #upload-status.error   { border-color: #4a1515; color: var(--danger); }
+        #upload-status.loading { color: var(--text-2); }
+
+        /* Document list */
+        #doc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .doc-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .doc-item svg { flex-shrink: 0; color: var(--accent); }
+
+        .doc-name {
+            flex: 1;
+            color: var(--text-1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .doc-chunks {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-3);
+            white-space: nowrap;
+        }
+
+        .empty-docs {
+            font-size: 12px;
+            color: var(--text-3);
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        /* ── Main panel ── */
+        main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Chat history */
+        #chat-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: var(--text-3);
+        }
+
+        .empty-state svg { margin: 0 auto 16px; display: block; }
+
+        .empty-state h2 {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-2);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            color: var(--text-3);
             line-height: 1.6;
         }
 
-       
+        /* Message bubbles */
+        .msg {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 740px;
+        }
+
+        .msg.user { align-self: flex-end; align-items: flex-end; }
+        .msg.assistant { align-self: flex-start; align-items: flex-start; }
+
+        .msg-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-3);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 0 4px;
+        }
+
+        .msg-bubble {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .msg.user .msg-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border-hi);
+            color: var(--text-1);
+        }
+
+        .msg.assistant .msg-bubble {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-1);
+        }
+
+        /* Sources */
+        .sources {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .source-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(0,200,150,0.2);
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+
+        /* Confidence badge */
+        .conf-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .conf-badge.HIGH   { background: rgba(0,200,150,0.12); color: var(--accent); }
+        .conf-badge.MEDIUM { background: rgba(245,166,35,0.12); color: var(--warn); }
+        .conf-badge.LOW    { background: rgba(255,95,95,0.12);  color: var(--danger); }
+
+        /* Thinking indicator */
+        .thinking {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-2);
+        }
+
+        .dots span {
+            display: inline-block;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--accent);
+            margin: 0 1px;
+            animation: blink 1.2s infinite;
+        }
+
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0.2; }
+            40%            { opacity: 1; }
+        }
+
+        /* ── Input bar ── */
+        .input-bar {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-panel);
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        #question-input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-hi);
+            border-radius: 8px;
+            padding: 11px 14px;
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--text-1);
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            max-height: 120px;
+            overflow-y: auto;
+            transition: border-color 0.2s;
+        }
+
+        #question-input::placeholder { color: var(--text-3); }
+        #question-input:focus { border-color: var(--accent); }
+
+        #submit-btn {
+            width: 40px; height: 40px;
+            border-radius: 8px;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+
+        #submit-btn:hover   { opacity: 0.85; }
+        #submit-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        #submit-btn svg { color: #000; }
+
+        /* scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
     </style>
 </head>
 <body>
-    
-    <h1>Document Q&A</h1>
 
-    <!-- UPLOAD SECTION -->
-    <div id="upload-section">
-        <h2>Step 1: Upload a PDF</h2>
-        <input type="file" id="file-input" accept=".pdf" multiple/>
-        <button onclick="uploadFile()">Upload</button>
-        <p id="upload-status">No document loaded.</p>
-    </div>
+    <header>
+        <div class="logo-mark">SQA</div>
+        <h1>SQA Assistant</h1>
+        <span class="header-tag">RAG · FAISS · Gemini</span>
+    </header>
 
-    
-    <h2>Ask a question.</h2>
+    <aside>
+        <div>
+            <p class="sidebar-section-label">Documents</p>
 
-    <!-- 1. The user types their question here -->
-    <textarea id="question-input" class="qa-section" rows="3" placeholder="e.g. What makes kangaroos special?" disabled="true"></textarea>
+            <div class="drop-zone" id="drop-zone">
+                <input type="file" id="file-input" accept=".pdf" multiple />
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                <p><span id="filenames">Click to upload</span> or drag PDFs here. Multiple files supported.</p>
+            </div>
 
-    <!-- 2. Clicking this triggers the askQuestion function -->
-    <button id="submit-btn" class="qa-section" onclick="askQuestion()" disabled="true">Ask</button>
+            <button class="upload-btn" id="upload-btn" onclick="uploadFiles()">Proceed</button>
 
-    <!-- 3. The answer will appear here -->
-    <textarea id="answer-box" placeholder="Answer will appear here..." disabled="true"></textarea>
+            <div id="upload-status"></div>
+        </div>
 
+        <div>
+            <p class="sidebar-section-label">Indexed</p>
+            <div id="doc-list">
+                <p class="empty-docs">No documents indexed yet.</p>
+            </div>
+        </div>
+    </aside>
 
+    <main>
+        <div id="chat-log">
+            <div class="empty-state" id="empty-state">
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#2a2f38" stroke-width="1.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <h2>No documents indexed</h2>
+                <p>Upload your SQA documents to start asking questions.<br>Test plans, defect reports, requirements — any PDF.</p>
+            </div>
+        </div>
+
+        <div class="input-bar">
+            <textarea
+                id="question-input"
+                rows="1"
+                placeholder="Ask about your test cases, defects, requirements..."
+                onkeydown="handleKey(event)"
+                oninput="autoResize(this)"
+            ></textarea>
+            <button id="submit-btn" onclick="askQuestion()" aria-label="Send">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+            </button>
+        </div>
+    </main>
 
     <script>
-        const btn = document.getElementById("submit-btn");
-        const answerBox = document.getElementById("answer-box");
-        const questionBox = document.getElementById("question-input");
+        const API = "http://localhost:8000";
+        const indexedDocs = [];
 
-        async function askQuestion() {
-            // 4. Grab what the user typed
-            const question = questionBox.value;
+        // ── Auto-resize textarea ──
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
 
-            // 5. Don't send an empty request
-            if (!question.trim()) return;
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        }
 
-            // 6. Show loading state so user knows something is happening
+        // ── Drag and drop ──
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            document.getElementById('file-input').files = e.dataTransfer.files;
+        });
+        document.getElementById('file-input').addEventListener('change', function() {
+            const names = Array.from(this.files).map(f => f.name).join(', ');
+            dropZone.querySelector('p').textContent= names + " were added. Click to add more.";
+        });
+
+        // ── Upload ──
+        async function uploadFiles() {
+            const fileInput = document.getElementById('file-input');
+            const status    = document.getElementById('upload-status');
+            const btn       = document.getElementById('upload-btn');
+
+            if (!fileInput.files.length) {
+                showStatus('Select at least one PDF first.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            for (const file of fileInput.files) {
+                formData.append('files', file);
+            }
+
             btn.disabled = true;
-            answerBox.value = "Thinking...";
+            showStatus(`Indexing ${fileInput.files.length} file(s)...`, 'loading');
 
-            // 7. fetch() sends the POST request — same contract as your curl command
-            //    async/await means: wait for the response before continuing
             try {
-                const response = await fetch("http://localhost:8000/ask", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ question: question })
-                });
-
-                // 8. Parse the JSON response — same as response.json() in Python requests
+                const response = await fetch(`${API}/upload`, { method: 'POST', body: formData });
                 const data = await response.json();
 
-
-                // 9. Put the answer into the div
-                a// 9. Combine answer and metadata with a visual divider into the textarea
-                answerBox.value = `${data.answer}\n\nSources:\n${data.metadata}`;
-
-                
-
-            } catch (error) {
-                // 10. If the API is down or CORS blocks it, show a useful message
-                answerBox.value = "Error: could not reach the API. Is the server running?";
+                if (response.ok) {
+                    data.filenames.forEach(doc => {
+                        indexedDocs.push(doc);
+                    });
+                    renderDocList();
+                    const names = data.filenames.join(', ');
+                    showStatus(`Indexed: ${names}`, 'success');
+                    document.getElementById('empty-state') && hideEmptyState();
+                } else {
+                    showStatus(`Error: ${data.detail}`, 'error');
+                }
+            } catch {
+                showStatus('Cannot reach API. Is the server running?', 'error');
             } finally {
-                // 11. Re-enable the button whether it succeeded or failed
                 btn.disabled = false;
             }
         }
 
-        async function uploadFile() {
-            const fileInput = document.getElementById("file-input");
-            const status = document.getElementById("upload-status");
+        function showStatus(msg, type) {
+            const el = document.getElementById('upload-status');
+            el.textContent = msg;
+            el.className = `visible ${type}`;
+        }
 
-            // 1. Check a file was actually selected
-            if (fileInput.files.length === 0) {
-                status.textContent = "Please select at least one PDF first.";
+        function renderDocList() {
+            const list = document.getElementById('doc-list');
+            if (!indexedDocs.length) {
+                list.innerHTML = '<p class="empty-docs">No documents indexed yet.</p>';
                 return;
             }
+            list.innerHTML = indexedDocs.map(filenames => `
+                <div class="doc-item">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <span class="doc-name" title="${filenames}">${filenames}</span>
+            
+                </div>
+            `).join('');
+        }
 
+        function hideEmptyState() {
+            const el = document.getElementById('empty-state');
+            if (el) el.remove();
+        }
 
-            // 2. FormData is how browsers send files — different from JSON
-            //    Think of it as putting the file in an envelope
-            const formData = new FormData();
-           
-            for (let i = 0; i < fileInput.files.length; i++) {
-                formData.append("files", fileInput.files[i]);
-            }
+        // ── Ask ──
+        async function askQuestion() {
+            const input = document.getElementById('question-input');
+            const question = input.value.trim();
+            if (!question) return;
 
-            status.textContent = "Uploading files...this may take a moment.";
+            hideEmptyState();
+
+            appendMessage('user', question);
+            input.value = '';
+            input.style.height = 'auto';
+
+            const thinkingEl = appendThinking();
+            document.getElementById('submit-btn').disabled = true;
 
             try {
-                // 3. Notice: no Content-Type header here
-                //    When sending FormData, the browser sets it automatically
-                //    If you set it manually you'll break it
-                const response = await fetch("http://localhost:8000/upload", {
-                    method: "POST",
-                    body: formData
+                const response = await fetch(`${API}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
                 });
-
                 const data = await response.json();
-
-                if (response.ok) {
-                    status.textContent = `Ready! you can ask questions now...`;
-                    btn.disabled=false;
-                    questionBox.disabled=false;
-
-                } else {
-                   // Handle cases where data.detail might be an array or string
-                    const detailMsg = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
-                    status.textContent = `Error: ${detailMsg || "Upload failed."}`;
-                }
-
-            } catch (error) {
-                status.textContent = "Error: could not reach the API.";
+                thinkingEl.remove();
+                appendAnswer(data.answer, data.metadata || []);
+            } catch {
+                thinkingEl.remove();
+                appendAnswer('Error: could not reach the API. Is the server running?', []);
+            } finally {
+                document.getElementById('submit-btn').disabled = false;
             }
+        }
+
+        function appendMessage(role, text) {
+            const log = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.className = `msg ${role}`;
+            div.innerHTML = `
+                <span class="msg-label">${role === 'user' ? 'You' : 'Assistant'}</span>
+                <div class="msg-bubble">${escapeHtml(text)}</div>
+            `;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+            return div;
+        }
+
+        function appendAnswer(text, metadata) {
+            const log = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.className = 'msg assistant';
+
+            const sourcesHtml = metadata.length ? `
+                <div class="sources">
+                    ${metadata.map(m => `
+                        <span class="source-pill">
+                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                            ${escapeHtml(m.source)} · p${m.page + 1}
+                        </span>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            div.innerHTML = `
+                <span class="msg-label">Assistant</span>
+                <div class="msg-bubble">${escapeHtml(text)}</div>
+                ${sourcesHtml}
+            `;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function appendThinking() {
+            const log = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.className = 'msg assistant';
+            div.innerHTML = `
+                <span class="msg-label">Assistant</span>
+                <div class="thinking">
+                    <div class="dots"><span></span><span></span><span></span></div>
+                    Searching documents...
+                </div>
+            `;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+            return div;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
         }
     </script>
 

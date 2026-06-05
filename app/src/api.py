@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(__file__))
 import app.src.rag as rag  
 from pathlib import Path
 from contextlib import asynccontextmanager
+from fastapi.responses import FileResponse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PDF_PATH = str(BASE_DIR / "data" / "sample.pdf")
@@ -51,6 +52,9 @@ class AskResponse(BaseModel):
     answer: str
     metadata: list
 
+@app.get("/home")
+def home():
+    return FileResponse(str(BASE_DIR / "src" / "frontend" / "index.html"))
 
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest):
@@ -91,5 +95,7 @@ async def upload(files: List[UploadFile] = File(...)):
     # 4. Replace the active index — now /ask searches the new document
     pipeline["index"] = new_index
     pipeline["chunks"] = chunks_list
+
+    
 
     return {"message": "Files successfully uploaded", "filenames": [f.filename for f in files] , "chunks": len(chunks_list)}
