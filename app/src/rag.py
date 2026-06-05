@@ -7,7 +7,10 @@ import faiss
 import numpy as np
 import requests
 import re
+from google import genai
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # ── STEP 1: Load and clean ────────────────────────────────────────────────────
 
@@ -118,11 +121,13 @@ Answer (2-3 sentences, context only):"""
 
 # ── STEP 7: Ask the LLM ───────────────────────────────────────────────────────
 
-def ask_llm(prompt, model_name="llama3.2:3b"):
-    """Send prompt to Ollama and return the answer string."""
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={"model": model_name, "prompt": prompt, "stream": False}
+def ask_llm(prompt, model_name="gemini-2.5-flash"):
+    client = genai.Client()
+    
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
     )
-    return response.json()["response"]
+    
+    return response.text
 

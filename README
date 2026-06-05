@@ -1,0 +1,126 @@
+# SQA Assistant
+
+> A retrieval-augmented generation (RAG) application for software quality assurance professionals. Upload your test plans, defect reports, and requirements specs — then ask questions in plain English.
+
+**[Live Demo](#)** · **[API Docs](http://localhost:8000/docs)**
+
+![SQA Assistant Screenshot]![alt text](image.png)
+
+---
+
+## What it does
+
+SQA professionals spend hours searching through PDFs for answers — "which test cases cover the login module?", "what's the severity of this known defect?", "does our test plan address performance requirements?". This assistant answers those questions instantly, with citations.
+
+Upload multiple documents. Ask anything. Get answers with exact source and page number.
+
+---
+
+## How it works
+
+```
+PDF documents
+     │
+     ▼
+OCR cleanup + chunking (150 tokens, 30 overlap)
+     │
+     ▼
+Sentence embeddings (all-MiniLM-L6-v2)
+     │
+     ▼
+FAISS vector index (IndexFlatL2)
+     │
+  question ──► embed question ──► similarity search
+                                        │
+                                        ▼
+                              top-k chunks + confidence score
+                                        │
+                                        ▼
+                              prompt with strict context rules
+                                        │
+                                        ▼
+                                   LLM answer + source citations
+```
+
+The LLM is **instructed to refuse** answering from outside the uploaded documents. If the context doesn't contain the answer, it says so — no hallucination.
+
+---
+
+## Tech stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Embedding | `sentence-transformers/all-MiniLM-L6-v2` | Fast, local, no API cost |
+| Vector search | FAISS `IndexFlatL2` | In-memory, zero infrastructure |
+| PDF loading | LangChain `PyPDFLoader` | Metadata (filename, page) attached automatically |
+| Chunking | `RecursiveCharacterTextSplitter` with tiktoken | Semantic boundaries, token-aware overlap |
+| API | FastAPI + Pydantic | Auto-validation, auto-docs at `/docs` |
+| LLM | Ollama `llama3.2:3b` (local) | Runs offline, no API key required |
+| Frontend | Vanilla HTML/CSS/JS | Zero dependencies, instant load |
+
+---
+
+## Project structure
+
+```
+sqa-assistant/
+├── src/
+│   ├── rag.py              # Full RAG pipeline — load, chunk, embed, index, retrieve, prompt
+│   ├── api.py              # FastAPI — /ask and /upload endpoints
+│   └── frontend/
+│       └── index.html      # Single-file UI — upload panel, chat interface, source citations
+├── data/
+│   ├── sample.pdf          # Example document for testing
+│   └── uploads/            # Uploaded documents stored here
+├── notebooks/
+│   └── rag_notebook.ipynb  # Step-by-step pipeline exploration
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Python 3.10+
+- [Ollama](https://ollama.com) installed and running
+
+### Install
+
+```bash
+git clone https://github.com/yourusername/sqa-assistant.git
+cd sqa-assistant
+
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
+
+pip install -r requirements.txt
+```
+
+### Pull the LLM
+
+```bash
+ollama pull llama3.2:3b
+```
+
+### Run
+
+```bash
+uvicorn src.api:app --reload
+```
+
+Open `http://localhost:8000/home` in your browser.
+
+API docs available at `http://localhost:8000/docs`.
+
+
+## Docker
+
+```bash
+docker-compose up
+
+```
+
+
