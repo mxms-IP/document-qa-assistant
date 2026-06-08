@@ -2,9 +2,9 @@
 
 > A retrieval-augmented generation (RAG) application for software quality assurance professionals. Upload your test plans, defect reports, and requirements specs — then ask questions in plain English.
 
-**[Live Demo](#)** · **[API Docs](http://localhost:8000/docs)**
+**[Live Demo](https://sqa-assistant-production-03f1.up.railway.app/home)** · **[API Docs](https://sqa-assistant-production-03f1.up.railway.app/docs)**
 
-![SQA Assistant Screenshot]![alt text](image.png)
+![SQA Assistant Screenshot](image.png)
 
 ---
 
@@ -55,7 +55,7 @@ The LLM is **instructed to refuse** answering from outside the uploaded document
 | PDF loading | LangChain `PyPDFLoader` | Metadata (filename, page) attached automatically |
 | Chunking | `RecursiveCharacterTextSplitter` with tiktoken | Semantic boundaries, token-aware overlap |
 | API | FastAPI + Pydantic | Auto-validation, auto-docs at `/docs` |
-| LLM | Ollama `llama3.2:3b` (local) | Runs offline, no API key required |
+| LLM | Google Gemini Flash | Fast, free tier, no local GPU needed |
 | Frontend | Vanilla HTML/CSS/JS | Zero dependencies, instant load |
 
 ---
@@ -72,8 +72,6 @@ sqa-assistant/
 ├── data/
 │   ├── sample.pdf          # Example document for testing
 │   └── uploads/            # Uploaded documents stored here
-├── notebooks/
-│   └── rag_notebook.ipynb  # Step-by-step pipeline exploration
 ├── requirements.txt
 └── README.md
 ```
@@ -85,7 +83,7 @@ sqa-assistant/
 ### Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.com) installed and running
+- Gemini API key — free at [aistudio.google.com](https://aistudio.google.com)
 
 ### Install
 
@@ -99,10 +97,12 @@ source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Pull the LLM
+### Configure
 
-```bash
-ollama pull llama3.2:3b
+Create a `.env` file in the project root:
+
+```
+GEMINI_API_KEY=your_key_here
 ```
 
 ### Run
@@ -115,12 +115,60 @@ Open `http://localhost:8000/home` in your browser.
 
 API docs available at `http://localhost:8000/docs`.
 
+---
+
+## API reference
+
+### `POST /upload`
+
+Upload one or more PDF documents. Builds a FAISS index across all files.
+
+```bash
+curl -X POST http://localhost:8000/upload \
+  -F "files=@testplan.pdf" \
+  -F "files=@defects.pdf"
+```
+
+Response:
+```json
+{
+  "documents": [
+    { "filename": "testplan.pdf", "chunks": 43 },
+    { "filename": "defects.pdf",  "chunks": 21 }
+  ]
+}
+```
+
+### `POST /ask`
+
+Ask a question against the indexed documents.
+
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Which test cases cover the authentication module?"}'
+```
+
+Response:
+```json
+{
+  "answer": "Test cases TC-014 through TC-019 cover the authentication module...",
+  "metadata": [
+    { "source": "testplan.pdf", "page": 4 },
+    { "source": "testplan.pdf", "page": 7 }
+  ]
+}
+```
+
+---
 
 ## Docker
 
 ```bash
 docker-compose up
-
 ```
 
 
+## Author
+
+**[mxms-IP]**
