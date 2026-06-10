@@ -9,8 +9,11 @@ import requests
 import re
 from google import genai
 from dotenv import load_dotenv
+import pickle
+from pathlib import Path
 
 load_dotenv()
+INDEX_DIR = Path(__file__).resolve().parent.parent / "data" / "index"
 
 # ── STEP 1: Load and clean ────────────────────────────────────────────────────
 
@@ -74,6 +77,27 @@ def build_index(embeddings):
     print(f"[index] Stored {index.ntotal} vectors")
     return index
 
+def save_pipeline(index, chunks):
+    """Save FAISS index and chunks to disk."""
+    faiss.write_index(index, str(INDEX_DIR / "index.faiss"))
+    with open(INDEX_DIR / "chunks.pkl", "wb") as f:
+        pickle.dump(chunks, f)
+    print("[Save] Saved index and chunks to disk.")
+
+def load_pipeline():
+    """Load FAISS index and chunks from disk if they exist."""
+    index_path = INDEX_DIR / "index.faiss"
+    chunks_path = INDEX_DIR / "chunks.pkl"
+    
+    if index_path.exists() and chunks_path.exists():
+        index = faiss.read_index(str(index_path))
+        with open(chunks_path, "rb") as f:
+            chunks = pickle.load(f)
+        print(f"[Save] Loaded {len(chunks)} chunks from disk.")
+        return index, chunks
+    
+    print("[Save] No saved pipeline found. Starting fresh.")
+    return None, []
 
 # ── STEP 5: Retrieve ──────────────────────────────────────────────────────────
 
@@ -96,9 +120,11 @@ def retrieve(question, embed_model, index, chunks, k=3):
             confidence = "LOW"
 
         results.append({"text": text, "distance": dist, "confidence": confidence, "metadata": metadata})
-      
 
-    return results
+
+    filtered = [r for r in results if r["confidence"] != "LOW"]
+
+    return filtered if filtered else []
 
 
 # ── STEP 6: Build prompt ──────────────────────────────────────────────────────

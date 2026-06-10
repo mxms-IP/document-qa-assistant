@@ -108,7 +108,7 @@ GEMINI_API_KEY=your_key_here
 ### Run
 
 ```bash
-uvicorn src.api:app --reload
+uvicorn app.src.api:app --reload
 ```
 
 Open `http://localhost:8000/home` in your browser.

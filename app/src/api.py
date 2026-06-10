@@ -23,14 +23,17 @@ chunks_list=[]
 #purpose: use of --reload with uvicorn starts two process watcher and worker, they cause running the rag pipeline twice that is unnecessary
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-  
     print("[startup] Loading embedding model...")
-
     pipeline["embed_model"] = rag.load_embed_model()
     
-    print("[startup] Embedding model ready.")
+    index, chunks = rag.load_pipeline()
+    if index is not None:
+        pipeline["index"] = index
+        pipeline["chunks"] = chunks
+        print("[startup] Pipeline restored from disk.")
+    
+    print("[startup] Ready.")
     yield
-    # Anything after yield runs on shutdown 
 
 
 app = FastAPI(lifespan=lifespan)\
@@ -59,6 +62,9 @@ def home():
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest):
     retrieved = rag.retrieve(request.question, pipeline["embed_model"], pipeline["index"], pipeline["chunks"])
+    if not retrieved:
+        return AskResponse(answer="Insufficient context — the documents do not contain enough relevant information to answer this question.", metadata=[])
+    
     prompt = rag.build_prompt(request.question, retrieved)
     answer = rag.ask_llm(prompt)
     sources = [
@@ -87,7 +93,9 @@ async def upload(files: List[UploadFile] = File(...)):
 
         pages = rag.load_and_clean(str(save_path))
         chunks = rag.chunk_pages(pages)
+        
         chunks_list.extend(chunks)
+        
     
     embeddings = rag.build_embeddings_from_model(chunks_list, pipeline["embed_model"])
     new_index = rag.build_index(embeddings)
@@ -95,7 +103,6 @@ async def upload(files: List[UploadFile] = File(...)):
     # 4. Replace the active index — now /ask searches the new document
     pipeline["index"] = new_index
     pipeline["chunks"] = chunks_list
-
-    
+    rag.save_pipeline(new_index, chunks_list)
 
     return {"message": "Files successfully uploaded", "filenames": [f.filename for f in files] , "chunks": len(chunks_list)}
