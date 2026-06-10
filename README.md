@@ -12,9 +12,9 @@ pinned: false
 
 > A retrieval-augmented generation (RAG) application for software quality assurance professionals. Upload your test plans, defect reports, and requirements specs — then ask questions in plain English.
 
-**[Live Demo](https://sqa-assistant-production-03f1.up.railway.app/home)** · **[API Docs](https://sqa-assistant-production-03f1.up.railway.app/docs)**
+**[Live Demo](https://mxms-ip.github.io/document-qa-assistant/)** 
 
-![SQA Assistant Screenshot](image.png)
+<img width="1440" height="773" alt="image" src="https://github.com/user-attachments/assets/7f35f5d9-904f-41c8-9956-988e494f8876" />
 
 ---
 
