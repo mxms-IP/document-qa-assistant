@@ -5,6 +5,11 @@
 
 app/data/sample.pdf
 app/data/*.pdf
-app/data/uploads/
 app/data/index.faiss
 app/data/chunks.pkl
+
+app/data/index/
+app/data/uploads/
+*.pkl
+*.faiss
+*.pdf
