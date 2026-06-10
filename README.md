@@ -1,3 +1,13 @@
+---
+title: SQA Assistant
+emoji: 📄
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
+
 # SQA Assistant
 
 > A retrieval-augmented generation (RAG) application for software quality assurance professionals. Upload your test plans, defect reports, and requirements specs — then ask questions in plain English.
@@ -14,7 +24,7 @@ SQA professionals spend hours searching through PDFs for answers — "which test
 
 Upload multiple documents. Ask anything. Get answers with exact source and page number.
 
----
+---git ls-files
 
 ## How it works
 
