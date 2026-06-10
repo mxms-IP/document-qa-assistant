@@ -1,0 +1,8 @@
+.env
+.qa_venv/
+__pycache__/
+*.pyc
+app/data/uploads/
+app/data/index.faiss
+app/data/chunks.pkl
+notebooks/
